@@ -19,7 +19,6 @@ public class PlayerVisuals : MonoBehaviour
 
     public void ChangeColor()
     {
-        _currentColor = 1;
         /*
          * pritiskom na slovo C mijenja se boja igraca na nacin da se iz liste materijala
          * (_playerMaterials) odabire sljedeca boja (_currentColor+1), ali je potrebno 
@@ -28,6 +27,10 @@ public class PlayerVisuals : MonoBehaviour
          * Nakon sto je boja lokalno promijenjena, potrebno je promijeniti boju tog igraca na svim ostalim racunalima
          * pozivom udaljene procedure RPC_ChangeColor.
          */
+        _currentColor += 1;
+        _currentColor %= _playerMaterials.Count;
+        _meshRenderer.material = _playerMaterials[_currentColor];
+        _photonView.RPC("RPC_ChangeColor", RpcTarget.All, _currentColor);
     }
 
     [PunRPC]
@@ -36,5 +39,6 @@ public class PlayerVisuals : MonoBehaviour
     {
         //ovdje je samo potrebno postaviti trenutnu boju igraca na onu
         //koja je proslijedena ovoj proceduri.
+        _meshRenderer.material = _playerMaterials[_currentColor];
     }
 }

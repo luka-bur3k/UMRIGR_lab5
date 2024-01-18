@@ -51,6 +51,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IOnEvent
 
     private void Awake()
     {
+        Debug.Log("Player instantiated.");
         _UI.SetActive(true);
         _rigidbody = GetComponent<Rigidbody>();
         _photonView = GetComponent<PhotonView>();
@@ -80,7 +81,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IOnEvent
         {
             Look();
             Move();
-            Jump();
+            JumpOrStride();
             SwitchWeapon();
             ChangeColor();
             if (_activeWeapons) UseItem();
@@ -108,11 +109,14 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IOnEvent
         _moveAmount = Vector3.SmoothDamp(_moveAmount, moveDirection * (Input.GetKey(KeyCode.LeftShift) ? _runSpeed : _walkSpeed), ref _smoothMoveVelocity, _smoothTime);
     }
 
-    private void Jump()
+    private void JumpOrStride()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && _onFloor)
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            _rigidbody.AddForce(transform.up * _jumpForce);
+            if (_onFloor)
+                _rigidbody.AddForce(transform.up * _jumpForce);
+            else 
+                _rigidbody.AddForce(transform.forward * _jumpForce);
         }
     }
 
@@ -216,6 +220,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IOnEvent
          * Provjerite kako se poziva RPC metoda tj. pomocu kojih argumenata i koji je njihov redoslijed.
          * U ovom projektu, sve se RPC metode pozivaju na svim racunalima.
          */
+        _photonView.RPC("RPC_TakeDamage", RpcTarget.All, damage, shooter);
     }
 
     [PunRPC]
@@ -230,6 +235,12 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IOnEvent
          * ukupnog zdravlja (_health) oduzeti stetu (damage) i azurirati _healthBar koji
          * je prikazan na ekranu igraca (Linija kôda koja slijedi).
          */
+
+        if (!_photonView.IsMine)
+        {
+            return;
+        }
+        _health -= damage;
         _healthBar.GetComponent<Image>().fillAmount = (_health / _maxHealth);
         /*
          * Nakon toga potrebno je provjeriti da li je igracevo zdravlje ispod nule.
@@ -242,6 +253,13 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IOnEvent
          * Postoji i metoda RPC_DeathScoreboard koji azurira bodove za smrti/unistavanja igraca, ali ona se poziva
          * kada se igrac unistava.
          */
+
+        if(_health < 0)
+        {
+            _health = 0;
+            _photonView.RPC("RPC_KillScoreboard", RpcTarget.All, shooter);
+            Die();
+        }
     }
 
     private void Die()
@@ -251,6 +269,7 @@ public class PlayerController : MonoBehaviourPunCallbacks, IDamageable, IOnEvent
          * Ispravni argument je onaj koji "govori" da se radi o trenutnom igracu tj. 
          * vlasniku ovog prefaba. (jedno od svojstava _photonView komponente).
          */
+        _photonView.RPC("RPC_DeathScoreboard", RpcTarget.All, _photonView.Owner);
         _playerManager.Die();
 
     }

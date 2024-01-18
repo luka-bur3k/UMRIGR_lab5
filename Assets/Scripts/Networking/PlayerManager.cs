@@ -11,6 +11,7 @@ public class PlayerManager : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log("Player manager instantiated.");
         _photonView = GetComponent<PhotonView>();
     }
 
@@ -32,7 +33,9 @@ public class PlayerManager : MonoBehaviour
     {
         //create player controller
         Transform spawnPoint = PlayerSpawnManager.Instance.getSpawnPoint();
-        //ovdje je samo potrebno putem mreze instancirati prefab Player koristeci poziciju u rotaciju dohvacenog mjesta stvaranja (spawnPoint), za grupu se postavlja 0, a podaci koji se proslijeduju je viewID svojstvo _photonViewa. U ovu svrhu se koristi  metoda PhotonNetwork.Instantiate
+        //ovdje je samo potrebno putem mreze instancirati prefab Player koristeci poziciju u rotaciju dohvacenog mjesta stvaranja (spawnPoint),
+        //za grupu se postavlja 0, a podaci koji se proslijeduju je viewID svojstvo _photonViewa. U ovu svrhu se koristi  metoda PhotonNetwork.Instantiate
+        _player = PhotonNetwork.Instantiate("NetworkedPrefabs/Player", spawnPoint.position, spawnPoint.rotation, 0, new object[] { _photonView.ViewID });
     }
 
     public void Die()
